@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marathon Check-Off</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Marathon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;900&display=swap" rel="stylesheet">
+<style id="css">
+/* Layout idea: a race bib on top (countdown), the 16 weeks as a mileage profile you tap, then one week as a checklist. */
+:root{
+  --paper:#eef0ea;
+  --card:#ffffff;
+  --ink:#141a22;
+  --muted:#5b6370;
+  --line:#d6dad0;
+  --accent:#e2401f;
+  --on-accent:#ffffff;
+  --display:"Big Shoulders Display","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Albert Sans",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141a;--card:#1a2029;--ink:#eef0ea;--muted:#9aa3b0;--line:#2c3440;--accent:#ff6a4a;--on-accent:#1a0b06;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141a;--card:#1a2029;--ink:#eef0ea;--muted:#9aa3b0;--line:#2c3440;--accent:#ff6a4a;--on-accent:#1a0b06;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.35;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#app{max-width:480px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:20px}
+
+/* bib */
+.bib{position:relative;background:var(--card);border:2px solid var(--ink);border-radius:10px;padding:22px 22px 18px;display:flex;flex-direction:column;gap:12px}
+.bib i{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--paper);border:2px solid var(--ink)}
+.bib i:nth-of-type(1){top:8px;left:8px}.bib i:nth-of-type(2){top:8px;right:8px}
+.bib i:nth-of-type(3){bottom:8px;left:8px}.bib i:nth-of-type(4){bottom:8px;right:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center}
+.count{display:flex;align-items:center;justify-content:center;gap:12px}
+.num{font-family:var(--display);font-weight:900;font-size:104px;line-height:.86;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.unit{font-family:var(--display);font-weight:700;font-size:26px;line-height:1;text-transform:uppercase;color:var(--accent)}
+.meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.meter span{display:block;height:100%;background:var(--accent);border-radius:4px}
+.stats{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 6px}
+.stats b{color:var(--ink);font-weight:700}
+
+/* mileage profile */
+.profile{display:flex;flex-direction:column;gap:6px}
+.profile h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:4px;height:104px}
+.bar{flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:4px}
+.col{position:relative;display:block;background:var(--line);border-radius:3px 3px 0 0;overflow:hidden}
+.col b{position:absolute;left:0;right:0;bottom:0;background:var(--accent)}
+.bar .n{font-size:11px;font-weight:600;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums;border-radius:3px;padding:2px 0}
+.bar[aria-pressed="true"] .n{background:var(--ink);color:var(--paper)}
+.bar.now .n{color:var(--accent)}
+.bar.now[aria-pressed="true"] .n{color:var(--paper)}
+
+/* week */
+.week{display:flex;flex-direction:column;gap:12px}
+.wk-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wk-head h1{margin:0;font-family:var(--display);font-weight:900;font-size:40px;line-height:1;text-transform:uppercase;text-align:center}
+.wk-head p{margin:4px 0 0;font-size:14px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.nav{width:44px;height:44px;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center;flex:none}
+.nav:disabled{opacity:.25;cursor:default}
+.nav svg{width:18px;height:18px}
+.days{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.day{width:100%;text-align:left;display:grid;grid-template-columns:44px 1fr auto 32px;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-height:68px}
+.day.today{border:2px solid var(--ink)}
+.when{display:flex;flex-direction:column;align-items:center}
+.when span{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.when b{font-family:var(--display);font-weight:700;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.what{min-width:0}
+.what strong{display:block;font-weight:600;font-size:16px}
+.what small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--ink);color:var(--paper);border-radius:3px;padding:1px 5px;margin-left:6px;vertical-align:2px}
+.mi{font-family:var(--display);font-weight:900;font-size:30px;line-height:1;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mi em{font-style:normal;font-family:var(--body);font-weight:600;font-size:11px;color:var(--muted);margin-left:3px;letter-spacing:.04em}
+.box{width:32px;height:32px;border-radius:50%;border:2px solid var(--muted);display:grid;place-items:center}
+.box svg{width:16px;height:16px;opacity:0;stroke:var(--on-accent)}
+.day[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent)}
+.day[aria-pressed="true"] .box svg{opacity:1}
+.day[aria-pressed="true"] .what,.day[aria-pressed="true"] .mi,.day[aria-pressed="true"] .when{opacity:.5}
+.day.race{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.day.race .when span,.day.race .what small,.day.race .mi em{color:var(--paper);opacity:.7}
+.day.race .box{border-color:var(--paper)}
+.sync{margin:0;text-align:center;font-size:13px;color:var(--muted);min-height:18px}
+@media (max-width:359px){.num{font-size:84px}.day{grid-template-columns:38px 1fr auto 30px;gap:8px;padding:10px}}
+@media (prefers-reduced-motion:no-preference){.col b,.meter span{transition:height .25s ease,width .25s ease}.box{transition:background .15s ease}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script id="state" type="application/json">{"done":{},"t":0}</script>
+<script id="code">
+(function () {
+  // Each week: [Saturday run with strides (moved from Tuesday), Wednesday, Thursday, Sunday long run (high mileage)]
+  var PLAN = [
+    [3, 4, 3, 8], [3.5, 4.5, 3.5, 9], [3.5, 5, 4, 10], [3, 4, 3, 8],
+    [4, 5, 4.5, 12], [4.5, 5.5, 5, 14], [5, 6, 5, 15], [3, 5, 3, 12],
+    [5, 7, 5, 16], [4, 5, 4, 14], [5, 8, 5, 18], [4, 6, 4, 14],
+    [6, 8, 5, 20], [5, 7, 5, 14], [4, 6, 4, 10], [4, 3, 2, 26.2]
+  ];
+  var WEEKS = PLAN.length;
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var LS = 'marathon-checkoff-v1';
+
+  function dateOf(w, d) { return new Date(2026, 10, 9 + (w - 1) * 7 + d); } // week 1 began Mon Nov 9, 2026
+  function sessions(w) {
+    var p = PLAN[w - 1];
+    if (w === 1) return [ // what was actually done in week 1
+      { t: 'Strength + run', mi: 1, d: 'Strength training, then an easy mile' },
+      { t: 'Swim', d: '1500 yards' },
+      { t: 'Strength + run', mi: 1, d: 'Strength training, then an easy mile' },
+      { t: 'Swim', d: '1500 yards' },
+      { t: 'Easy run', mi: 3, d: 'Easy effort' },
+      { t: 'Run', mi: 6, d: 'Easy effort' },
+      { t: 'Long run', mi: 6, d: 'Easy, steady effort' }
+    ];
+    return [
+      { t: 'Strength training', d: 'Leg day' },
+      { t: 'Swim', d: '1500 yards' },
+      { t: 'Easy run', mi: p[1], d: 'Easy effort' },
+      { t: 'Easy run', mi: p[2], d: 'Easy effort, soft surface' },
+      { t: 'Strength training', d: 'Arm & back day' },
+      { t: 'Easy run + strides', mi: p[0], d: 'Finish with 4 to 6 strides of 15 to 20 sec, walking between' },
+      w === WEEKS ? { t: 'Marathon', mi: p[3], d: 'Race day', race: true } : { t: 'Long run', mi: p[3], d: 'Easy, steady effort' }
+    ];
+  }
+  function fmt(n) { n = Math.round(n * 10) / 10; return n % 1 ? n.toFixed(1) : String(n); }
+
+  function read(json) { try { var s = JSON.parse(json); if (s && typeof s.done === 'object' && s.done) return { done: s.done, t: +s.t || 0 }; } catch (e) {} return null; }
+  var state = read(document.getElementById('state').textContent) || { done: {}, t: 0 };
+  try { var local = read(localStorage.getItem(LS)); if (local && local.t > state.t) state = local; } catch (e) {}
+  if (!state.done.w1) { for (var d1 = 0; d1 < 7; d1++) state.done['1-' + d1] = 1; state.done.w1 = 1; } // week 1 is already done
+
+  var today = new Date(); today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  var dayIndex = Math.round((today - dateOf(1, 0)) / 864e5);
+  var nowWeek = dayIndex >= 0 && dayIndex < WEEKS * 7 ? Math.floor(dayIndex / 7) + 1 : 0;
+  var daysLeft = Math.round((dateOf(WEEKS, 6) - today) / 864e5);
+  var sel = nowWeek || (dayIndex < 0 ? 1 : WEEKS);
+  try { var kept = +sessionStorage.getItem(LS + '-week'); if (kept >= 1 && kept <= WEEKS) sel = kept; } catch (e) {}
+
+  var status = '';
+
+  function totals(w) {
+    var plan = 0, done = 0, runs = 0, runsDone = 0;
+    sessions(w).forEach(function (s, d) {
+      if (!s.mi) return;
+      plan += s.mi; runs++;
+      if (state.done[w + '-' + d]) { done += s.mi; runsDone++; }
+    });
+    return { plan: plan, done: done, runs: runs, runsDone: runsDone };
+  }
+
+  var CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+  function arrow(dir) { return '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (dir < 0 ? 'M11 3.5L5.5 9l5.5 5.5' : 'M7 3.5L12.500 9 7 14.5') + '"/></svg>'; }
+
+  function render() {
+    var all = { plan: 0, done: 0, runs: 0, runsDone: 0 }, per = [], max = 0, w;
+    for (w = 1; w <= WEEKS; w++) {
+      var t = totals(w); per.push(t);
+      all.plan += t.plan; all.done += t.done; all.runs += t.runs; all.runsDone += t.runsDone;
+      if (t.plan > max) max = t.plan;
+    }
+    var h = '';
+    h += '<header class="bib"><i></i><i></i><i></i><i></i>';
+    h += '<div class="eyebrow">Marathon &middot; Sun, Feb 28, 2027</div>';
+    if (daysLeft > 0) h += '<div class="count"><span class="num">' + daysLeft + '</span><span class="unit">' + (daysLeft === 1 ? 'day' : 'days') + '<br>to go</span></div>';
+    else h += '<div class="count"><span class="num">26.2</span><span class="unit">' + (daysLeft === 0 ? 'race<br>day' : 'miles<br>raced') + '</span></div>';
+    h += '<div class="meter" role="img" aria-label="' + fmt(all.done) + ' of ' + fmt(all.plan) + ' miles done"><span style="width:' + (all.done / all.plan * 100).toFixed(1) + '%"></span></div>';
+    h += '<div class="stats"><span><b>' + all.runsDone + '</b> of ' + all.runs + ' runs</span><span><b>' + fmt(all.done) + '</b> of ' + fmt(all.plan) + ' mi</span></div>';
+    h += '</header>';
+
+    h += '<section class="profile"><h2>Weekly miles</h2><div class="bars">';
+    for (w = 1; w <= WEEKS; w++) {
+      var p = per[w - 1];
+      h += '<button class="bar' + (w === nowWeek ? ' now' : '') + '" data-week="' + w + '" aria-pressed="' + (w === sel) + '" aria-label="Week ' + w + ', ' + fmt(p.plan) + ' miles planned, ' + fmt(p.done) + ' done">' +
+        '<span class="col" style="height:' + (p.plan / max * 78).toFixed(1) + 'px"><b style="height:' + (p.done / p.plan * 100).toFixed(1) + '%"></b></span>' +
+        '<span class="n">' + w + '</span></button>';
+    }
+    h += '</div></section>';
+
+    var a = dateOf(sel, 0), b = dateOf(sel, 6), cur = per[sel - 1];
+    var range = MONTHS[a.getMonth()] + ' ' + a.getDate() + ' to ' + (a.getMonth() === b.getMonth() ? '' : MONTHS[b.getMonth()] + ' ') + b.getDate();
+    h += '<section class="week"><div class="wk-head">';
+    h += '<button class="nav" data-step="-1" aria-label="Previous week"' + (sel === 1 ? ' disabled' : '') + '>' + arrow(-1) + '</button>';
+    h += '<div><h1>Week ' + sel + '</h1><p>' + range + ' &middot; ' + fmt(cur.done) + ' of ' + fmt(cur.plan) + ' mi</p></div>';
+    h += '<button class="nav" data-step="1" aria-label="Next week"' + (sel === WEEKS ? ' disabled' : '') + '>' + arrow(1) + '</button>';
+    h += '</div><ul class="days">';
+    sessions(sel).forEach(function (s, d) {
+      var key = sel + '-' + d, isToday = (sel - 1) * 7 + d === dayIndex;
+      h += '<li><button class="day' + (isToday ? ' today' : '') + (s.race ? ' race' : '') + '" data-key="' + key + '" aria-pressed="' + !!state.done[key] + '">' +
+        '<span class="when"><span>' + DAYS[d] + '</span><b>' + dateOf(sel, d).getDate() + '</b></span>' +
+        '<span class="what"><strong>' + s.t + (isToday ? '<span class="tag">Today</span>' : '') + '</strong><small>' + s.d + '</small></span>' +
+        '<span class="mi">' + (s.mi ? fmt(s.mi) + '<em>mi</em>' : '') + '</span>' +
+        '<span class="box">' + CHECK + '</span></button></li>';
+    });
+    h += '</ul></section>';
+    h += '<p class="sync" id="sync" role="status">' + status + '</p>';
+    document.getElementById('app').innerHTML = h;
+  }
+
+  function setStatus(s) { status = s; var el = document.getElementById('sync'); if (el) el.textContent = s; }
+
+  function save() {
+    state.t = Date.now();
+    try { localStorage.setItem(LS, JSON.stringify(state)); setStatus('Saved on this phone'); }
+    catch (e) { setStatus('Could not save. This browser is blocking storage (Private Browsing does this).'); }
+  }
+
+  document.getElementById('app').addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('button') : null;
+    if (!el || el.disabled) return;
+    if (el.dataset.key) {
+      if (state.done[el.dataset.key]) delete state.done[el.dataset.key]; else state.done[el.dataset.key] = 1;
+      render(); save(); return;
+    }
+    if (el.dataset.week) sel = +el.dataset.week;
+    else if (el.dataset.step) sel = Math.min(WEEKS, Math.max(1, sel + +el.dataset.step));
+    else return;
+    try { sessionStorage.setItem(LS + '-week', String(sel)); } catch (e) {}
+    render();
+    var again = document.querySelector(el.dataset.week ? '.bar[aria-pressed="true"]' : '.nav[data-step="' + el.dataset.step + '"]');
+    if (again && !again.disabled) again.focus();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
